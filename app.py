@@ -1,32 +1,8 @@
-# ==========================================================
-# LOAN AMORTIZATION REVEALER
-# ==========================================================
-# What does this program do?
-# If you take a loan from a bank, they give you an EMI to pay every month.
-# But did you know that in the beginning, most of your EMI goes to interest,
-# and very little goes to reducing your actual loan?
-# 
-# This program reveals that hidden truth, month by month.
-# ==========================================================
-
-# First, we import tools that Python gives us for free.
-# "argparse" helps us take inputs from the command line (like --loan 500000).
-# "sys" helps us stop the program if the user types something wrong.
 import argparse
 import sys
 
 
-# ----------------------------------------------------------
-# PART 1: ASKING THE USER FOR INPUT (Interactive Mode)
-# ----------------------------------------------------------
-# This function runs if the user just double-clicks the file
-# or runs it without typing any numbers after it.
 def get_interactive_input():
-    """
-    This function asks the user questions one by one.
-    We use 'while True' loops so if they make a typo, 
-    we ask them again instead of crashing the program.
-    """
     
     print("\n" + "=" * 60)
     print("        LOAN AMORTIZATION REVEALER")
@@ -34,21 +10,20 @@ def get_interactive_input():
     print("\n  Please enter your loan details below:\n")
 
     # --- 1. Get Loan Amount ---
-    while True: # "while True" means keep asking forever until we say "break"
-        try:     # "try" means: attempt this, but don't crash if there's an error
+    while True: 
+        try:     
             loan_input = input("  [1/4] Loan Amount (e.g., 500000): ").strip()
             
-            # People often type "50,00,000". Python hates commas in numbers.
-            # So, we remove the commas before converting it to a number.
+        
             loan_input = loan_input.replace(",", "")
             loan_amount = float(loan_input) # Convert text to a decimal number
             
             if loan_amount <= 0:
                 print("         -> Loan must be greater than 0!\n")
-                continue # Skip the rest and start the loop again
-            break # Success! Exit the loop and move on
+                continue 
+            break 
             
-        except ValueError: # "except" catches the error if user typed "abc" instead of a number
+        except ValueError: 
             print("         -> Oops! Please enter valid numbers only.\n")
 
     # --- 2. Get Interest Rate ---
@@ -68,7 +43,7 @@ def get_interactive_input():
     while True:
         try:
             tenure_input = input("  [3/4] Tenure in Months (e.g., 240 for 20 years): ").strip()
-            tenure_months = int(tenure_input) # "int" means we want a whole number, no decimals
+            tenure_months = int(tenure_input) 
             
             if tenure_months <= 0:
                 print("         -> Tenure must be greater than 0!\n")
@@ -84,7 +59,6 @@ def get_interactive_input():
     
     prepay_months = []
     if prepay_input: # If they didn't just press Enter
-        # Split their answer by spaces and check each number
         for part in prepay_input.split():
             try:
                 m = int(part)
@@ -93,7 +67,6 @@ def get_interactive_input():
             except ValueError:
                 pass # If they typed a letter here, just ignore it quietly
         
-        # Remove duplicates and sort from smallest to largest
         if prepay_months:
             prepay_months = sorted(set(prepay_months))
 
@@ -117,22 +90,12 @@ def get_interactive_input():
     }
 
 
-# ----------------------------------------------------------
-# PART 2: THE CORE MATH (Calculations)
-# ----------------------------------------------------------
+
 def calculate_emi(principal, annual_rate, tenure_months):
-    """
-    This uses the standard bank formula to find the fixed EMI.
-    Formula: EMI = P × r × (1 + r)^n / ((1 + r)^n - 1)
-    """
-    # If interest is 0%, just divide the loan by months. Simple!
     if annual_rate == 0:
-        return principal / tenure_months
-    
-    # Convert annual rate (e.g., 8.5%) to monthly rate (e.g., 0.708%)
+        return principal / tenure_months 
+   
     monthly_rate = annual_rate / 12 / 100 
-    
-    # Apply the formula
     numerator = principal * monthly_rate * (1 + monthly_rate) ** tenure_months
     denominator = (1 + monthly_rate) ** tenure_months - 1
     
@@ -140,38 +103,22 @@ def calculate_emi(principal, annual_rate, tenure_months):
 
 
 def build_amortization_table(principal, annual_rate, tenure_months):
-    """
-    THIS IS THE HEART OF THE PROGRAM.
-    
-    Skills used here:
-    - FOR LOOPS WITH RUNNING STATE: We keep track of the 'balance' 
-      and 'total interest' as we loop through months.
-    - LIST BUILDING: We create an empty list [] and .append() data to it 
-      for every single month.
-    """
     
     emi = calculate_emi(principal, annual_rate, tenure_months)
     monthly_rate = annual_rate / 12 / 100
     
-    # --- LIST BUILDING ---
-    # We create an empty list. Think of it as an empty notebook.
-    # We will add one page of data for every month.
+    
     table = []
     
-    # --- RUNNING STATE ---
-    # These variables act like a running tally. 
-    # They change and carry over their new value into the next loop.
+   
     remaining_balance = principal  # At start, you owe the full loan
     cumulative_interest = 0.0      # At start, you've paid 0 interest
     crossover_month = None         # We haven't found the crossover yet
     
-    # THE FOR LOOP: This will run once for every month of the loan
+ 
     for month in range(1, tenure_months + 1):
-        
-        # 1. Calculate this month's interest (Balance * monthly rate)
         interest_component = remaining_balance * monthly_rate
         
-        # 2. Whatever is left from the EMI after paying interest goes to principal
         principal_component = emi - interest_component
         
         # 3. Fix for the very last month (to avoid 1-rupee rounding errors)
@@ -181,19 +128,15 @@ def build_amortization_table(principal, annual_rate, tenure_months):
             if interest_component < 0:
                 interest_component = 0.0
         
-        # 4. UPDATE RUNNING STATE
-        # Add this month's interest to our lifetime running total
+       
         cumulative_interest += interest_component
         
-        # Subtract this month's principal from the running balance
         remaining_balance -= principal_component
         
         # Don't let balance go below zero because of math rounding
         if remaining_balance < 0.01:
             remaining_balance = 0.0
-        
-        # 5. CHECK FOR CROSSOVER
-        # Is this the first month where Principal > Interest?
+     
         if crossover_month is None and principal_component > interest_component:
             crossover_month = month # Save this month number!
         
@@ -207,16 +150,12 @@ def build_amortization_table(principal, annual_rate, tenure_months):
             'cumulative_interest': cumulative_interest,
             'remaining_balance': remaining_balance
         })
-    
-    # Return our filled notebook, the EMI, and the crossover month
+
     return emi, table, crossover_month
 
 
 def calculate_prepay_cost(table, prepay_months, penalty_rate=0.02):
-    """
-    If you want to close the loan early, what do you pay?
-    = Remaining Balance + Bank's Penalty (usually 2%)
-    """
+    
     results = []
     
     for month in prepay_months:
@@ -246,9 +185,7 @@ def calculate_prepay_cost(table, prepay_months, penalty_rate=0.02):
     return results
 
 
-# ----------------------------------------------------------
-# PART 3: FORMATTING HELPERS (Making it look pretty)
-# ----------------------------------------------------------
+
 def format_currency(amount):
     """Converts boring numbers like 5000000 into readable '₹50.00 L' (Lakhs)"""
     if amount >= 10000000: # 1 Crore
@@ -273,10 +210,6 @@ def print_header(principal, annual_rate, tenure_months, emi):
     print(f"\n┌{'─' * 83}┐")
     print(f"│{'LOAN DETAILS':^83}│")
     print(f"├{'─' * 83}┤")
-    
-    # F-STRING ALIGNMENT: 
-    # '<30' means Left-align, take up 30 spaces.
-    # '>50' means Right-align, take up 50 spaces.
     print(f"│  {'Loan Amount:':<30} {format_currency(principal):>50} │")
     print(f"│  {'Annual Interest Rate:':<30} {annual_rate:>49.2f}% │")
     print(f"│  {'Loan Tenure:':<30} {tenure_months:>39} months │")
@@ -292,17 +225,11 @@ def print_header(principal, annual_rate, tenure_months, emi):
 
 
 def print_amortization_table(table, crossover_month):
-    """
-    Prints the giant table.
-    Skills used: F-string alignment to make perfect columns.
-    """
+   
     print(f"\n{'─' * 85}")
     print(f"{'MONTH-BY-MONTH AMORTIZATION TABLE':^85}")
     print(f"{'─' * 85}")
-    
-    # Table headers
-    # :>6 means right-align in 6 spaces. :>12 means right-align in 12 spaces.
-    # This forces all columns to be perfectly straight!
+
     header = (
         f"{'Month':>6} │ {'EMI':>12} │ {'Principal':>12} │ "
         f"{'Interest':>12} │ {'Cum.Int':>12} │ {'Balance':>14}"
@@ -390,7 +317,7 @@ def print_prepay_analysis(prepay_results):
 
 
 def generate_default_prepay_months(tenure_months):
-    """If user doesn't specify prepay months, we pick some smart ones automatically."""
+   
     milestones = []
     # Pick 1 year, 2 year, 3 year marks etc.
     for year in range(1, int(tenure_months / 12) + 1):
@@ -402,10 +329,6 @@ def generate_default_prepay_months(tenure_months):
     milestones = sorted(set(m for m in milestones if 1 <= m < tenure_months))
     return milestones[:8] # Return max 8 items
 
-
-# ----------------------------------------------------------
-# PART 4: THE TRAFFIC COP (argparse and Main function)
-# ----------------------------------------------------------
 def main():
     """
     This is the boss function. It decides HOW the program gets its data.
@@ -438,12 +361,9 @@ Examples:
     parser.add_argument('--no-table', action='store_true', help='Skip the giant table')
     parser.add_argument('-i', '--interactive', action='store_true', help='Force interactive mode')
 
-    # Read what the user typed in the terminal
+ 
     args = parser.parse_args()
-
-    # --- DECISION TIME: Interactive or Command Line? ---
     
-    # Check if they provided numbers via command line
     all_positional = [args.loan_amount, args.interest_rate, args.tenure_months]
     all_named = [args.loan, args.rate, args.tenure]
     has_cli_input = any(v is not None for v in all_positional) or any(v is not None for v in all_named)
@@ -472,21 +392,17 @@ Examples:
             print("\n  ERROR: You must provide loan, rate, and tenure.\n")
             sys.exit(1) # Stop the program immediately with error code 1
 
-    # ----------------------------------------------------------
-    # PART 5: PUTTING IT ALL TOGETHER
-    # ----------------------------------------------------------
-    
-    # 1. Do the heavy math (Generates the big list)
+   
     emi, table, crossover_month = build_amortization_table(loan_amount, interest_rate, tenure_months)
 
-    # 2. Figure out prepay months if user didn't specify
+    
     if not prepay_months:
         prepay_months = generate_default_prepay_months(tenure_months)
 
-    # 3. Calculate prepay data
+   
     prepay_results = calculate_prepay_cost(table, prepay_months, penalty_rate / 100)
 
-    # 4. Print everything to the screen nicely
+   
     print_header(loan_amount, interest_rate, tenure_months, emi)
 
     if not no_table:
@@ -497,12 +413,12 @@ Examples:
     if prepay_results:
         print_prepay_analysis(prepay_results)
 
-    # Final Summary
+    
     print(f"\n{'=' * 85}")
     print(f"{'FINAL SUMMARY':^85}")
     print(f"{'=' * 85}")
     print(f"""
-  ┌─────────────────────────────────────────────────────────────────────────────┐
+  ┌─────┐
   │  Quick Reference                                                           │
   ├─────────────────────────────────────────────────────────────────────────────┤
   │  Monthly EMI:            {format_currency(emi):>45}  │
@@ -513,8 +429,6 @@ Examples:
     print(f"{'=' * 85}\n")
 
 
-# This is a special Python variable. 
-# It means: "Only run the main() function if this file is run directly."
-# (If someone imports this file into another program, it won't auto-run).
+
 if __name__ == "__main__":
     main()
